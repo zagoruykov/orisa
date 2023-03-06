@@ -19,28 +19,19 @@ class Trip(models.Model):
     client = models.ForeignKey('clients.Client', related_name='trips', on_delete=models.CASCADE)
     guide = models.ManyToManyField('staff.Guide', through='trips.GuideTrips')
     vehicle = models.ForeignKey('staff.Vehicle', related_name='trips', on_delete=models.CASCADE)
-    title = models.CharField(max_length=50)
+    title = models.CharField(max_length=150)
     description = models.TextField()
-    adults = models.PositiveSmallIntegerField()
-    kids = models.PositiveSmallIntegerField()
-    free = models.PositiveSmallIntegerField()
+    adults = models.PositiveSmallIntegerField(default=0)
+    kids = models.PositiveSmallIntegerField(default=0)
+    free = models.PositiveSmallIntegerField(default=0)
     commission = models.DecimalField(max_digits=15, decimal_places=2)
     profit = models.DecimalField(max_digits=15, decimal_places=2)
-    days = models.ManyToManyField('sights.Sight', through='trips.Day', related_name='days')
 
     def __str__(self):
         return self.title
 
     def group(self):
         return self.free + self.kids + self.adults
-
-    def trip_start_at(self):
-        day: 'Day' = self.day_set.first()
-        return day.datetime_start if day else None
-
-    def trip_end_at(self):
-        day: 'Day' = self.day_set.last()
-        return day.datetime_end if day else None
 
     def __reduce_values(self, acc: dict, curr: 'Day'):
         adult_price = curr.sight.last_price.adult_price if curr.sight.last_price else 0
@@ -76,12 +67,13 @@ class Trip(models.Model):
             'sight__title', 'day', 'time')
 
 
-
 class Day(models.Model):
-    sight = models.ForeignKey('sights.Sight', on_delete=models.CASCADE)
-    trip = models.ForeignKey('Trip', on_delete=models.CASCADE)
-    datetime_start = models.DateTimeField()
-    datetime_end = models.DateTimeField()
+    trip = models.ForeignKey('Trip', on_delete=models.CASCADE, related_name='days')
+    date = models.DateField()
+    sights = models.ManyToManyField('sights.Sight', through='trips.DaySight')
+
+    def __str__(self):
+        return f'{self.trip.title} - {self.date}'
 
     def __set_locale(self):
         locale.setlocale(locale.LC_TIME, 'ru_RU')
@@ -89,3 +81,17 @@ class Day(models.Model):
     def datetime_to_human(self):
         format_str = '%d %B'
         return self.datetime_start.strftime(format_str), self.datetime_end.strftime(format_str)
+
+
+class DaySight(models.Model):
+    day = models.ForeignKey('trips.Day', on_delete=models.CASCADE)
+    sight = models.ForeignKey('sights.Sight', on_delete=models.CASCADE)
+    extra = models.PositiveSmallIntegerField(default=0)
+    start_at = models.TimeField(blank=True, null=True)
+    end_at = models.TimeField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Sight'
+
+    def __str__(self):
+        return self.sight.title
