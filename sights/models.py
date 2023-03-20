@@ -31,7 +31,7 @@ class Tag(models.Model):
 class Price(models.Model):
     sight = models.ForeignKey('Sight', related_name='prices', on_delete=models.CASCADE)
     adult_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    kids_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    kid_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     def __str__(self):
-        return f'Price: {self.sight.title} | {self.adult_price} | {self.kids_price}'
+        return f'Price: {self.sight.title} | {self.adult_price} | {self.kid_price}'

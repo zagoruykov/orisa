@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'huey.contrib.djhuey',
     'corsheaders',
     'nested_admin',
     'staff.apps.StaffConfig',
@@ -85,8 +84,12 @@ WSGI_APPLICATION = 'orisa_api.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'orisadb',
+        'USER': 'orisa_admin',
+        'PASSWORD': 'AVNS_OilJ6IF4YimMmiAYoqA',
+        'HOST': 'db-postgresql-fra1-23514-do-user-13723562-0.b.db.ondigitalocean.com',
+        'PORT': '25060'
     }
 }
 
@@ -128,25 +131,3 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-HUEY = {
-    'huey_class': 'huey.SqliteHuey',  # Huey implementation to use.
-    'name': 'app.huey',  # Use db name for huey.
-    'fsync': True,
-    'strict_fifo': True,
-    'results': True,  # Store return values of tasks.
-    'store_none': False,  # If a task returns None, do not save to results.
-    'immediate': False,  # If DEBUG=True, run synchronously.
-    'utc': True,  # Use UTC for all times internally.
-    'consumer': {
-        'workers': 4,
-        'worker_type': 'thread',
-        'initial_delay': 0.1,  # Smallest polling interval.
-        'backoff': 1.15,  # Exponential backoff using this rate.
-        'max_delay': 10.0,  # Max possible polling interval.
-        'scheduler_interval': 1,  # Check schedule every second.
-        'periodic': True,  # Enable crontab feature.
-        'check_worker_health': True,  # Enable worker health checks.
-        'health_check_interval': 1,  # Check worker health every second.
-    },
-}

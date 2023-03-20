@@ -1,7 +1,7 @@
 import nested_admin
 from django.contrib import admin
 
-from .models import Trip, Day, DaySight
+from .models import Trip, Day, DaySight, VehiclesTrips
 
 
 class SightsInline(nested_admin.NestedStackedInline):
@@ -10,22 +10,30 @@ class SightsInline(nested_admin.NestedStackedInline):
     classes = ['collapse']
 
 
+class GuideInline(nested_admin.NestedTabularInline):
+    model = Day.guides.through
+    extra = 1
+    classes = ['collapse']
+
+class VehiclesInline(nested_admin.NestedTabularInline):
+    model = Day.vehicles.through
+    extra = 1
+    classes = ['collapse']
+
+
 class DaysInline(nested_admin.NestedTabularInline):
     model = Day
     extra = 0
     inlines = [
-        SightsInline
+        VehiclesInline,
+        GuideInline,
+        SightsInline,
     ]
 
 
 @admin.register(DaySight)
 class DaySightAdmin(admin.ModelAdmin):
     pass
-
-
-class GuideInline(nested_admin.NestedTabularInline):
-    model = Trip.guide.through
-    extra = 1
 
 
 # Register your models here.
@@ -37,7 +45,6 @@ class GuideInline(nested_admin.NestedTabularInline):
 @admin.register(Trip)
 class TripAdmin(nested_admin.NestedModelAdmin):
     inlines = [
-        GuideInline,
         DaysInline
     ]
 
@@ -48,9 +55,9 @@ class TripAdmin(nested_admin.NestedModelAdmin):
         ('Group', {
             'fields': ('adults', 'kids', 'free',)
         }),
-        ('Additional services', {
-            'fields': ('vehicle',)
-        }),
+        # ('Additional services', {
+        #     'fields': ('vehicles',)
+        # }),
         ('Profit', {
             'fields': ('commission', 'profit',)
         }),

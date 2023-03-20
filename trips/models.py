@@ -1,37 +1,50 @@
 import locale
 from functools import reduce
-
+from decimal import Decimal
 from django.db import models
 from django.db.models.functions import TruncDate, TruncTime
 
+from .managers import DayManager
 from .services import create_program_docx
 
 
 class GuideTrips(models.Model):
-    trip = models.ForeignKey('trips.Trip', on_delete=models.CASCADE)
+    day = models.ForeignKey('trips.Day', on_delete=models.CASCADE)
     guide = models.ForeignKey('staff.Guide', on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=15, decimal_places=2)
-    date = models.DateTimeField()
+    quantity = models.PositiveSmallIntegerField()
+
+
+class VehiclesTrips(models.Model):
+    day = models.ForeignKey('trips.Day', on_delete=models.CASCADE)
+    vehicle = models.ForeignKey('staff.Vehicle', on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=15, decimal_places=2)
+    quantity = models.PositiveSmallIntegerField()
 
 
 # Create your models here.
 class Trip(models.Model):
     client = models.ForeignKey('clients.Client', related_name='trips', on_delete=models.CASCADE)
-    guide = models.ManyToManyField('staff.Guide', through='trips.GuideTrips')
-    vehicle = models.ForeignKey('staff.Vehicle', related_name='trips', on_delete=models.CASCADE)
     title = models.CharField(max_length=150)
     description = models.TextField()
     adults = models.PositiveSmallIntegerField(default=0)
     kids = models.PositiveSmallIntegerField(default=0)
     free = models.PositiveSmallIntegerField(default=0)
-    commission = models.DecimalField(max_digits=15, decimal_places=2)
-    profit = models.DecimalField(max_digits=15, decimal_places=2)
+    commission = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    profit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     def __str__(self):
         return self.title
 
     def group(self):
-        return self.free + self.kids + self.adults
+        return self.adults + self.kids + self.free
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        for day in self.days.all():
+            for day_sight in day.daysight_set.all():
+                day_sight.save()
+        super().save(*args, **kwargs)
 
     def __reduce_values(self, acc: dict, curr: 'Day'):
         adult_price = curr.sight.last_price.adult_price if curr.sight.last_price else 0
@@ -70,7 +83,10 @@ class Trip(models.Model):
 class Day(models.Model):
     trip = models.ForeignKey('Trip', on_delete=models.CASCADE, related_name='days')
     date = models.DateField()
+    vehicles = models.ManyToManyField('staff.Vehicle', through='trips.VehiclesTrips')
+    guides = models.ManyToManyField('staff.Guide', through='trips.GuideTrips')
     sights = models.ManyToManyField('sights.Sight', through='trips.DaySight')
+    objects = DayManager()
 
     def __str__(self):
         return f'{self.trip.title} - {self.date}'
@@ -86,7 +102,10 @@ class Day(models.Model):
 class DaySight(models.Model):
     day = models.ForeignKey('trips.Day', on_delete=models.CASCADE)
     sight = models.ForeignKey('sights.Sight', on_delete=models.CASCADE)
-    extra = models.PositiveSmallIntegerField(default=0)
+    adult_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    adults_quantity = models.PositiveSmallIntegerField(default=0)
+    kid_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    kids_quantity = models.PositiveSmallIntegerField(default=0)
     start_at = models.TimeField(blank=True, null=True)
     end_at = models.TimeField(blank=True, null=True)
 
@@ -94,4 +113,16 @@ class DaySight(models.Model):
         verbose_name = 'Sight'
 
     def __str__(self):
-        return self.sight.title
+        return f'{self.sight.title}'
+
+    def save(self, *args, **kwargs):
+        if self.adult_price == Decimal('0.00'):
+            self.adult_price = self.sight.last_price.adult_price
+        if self.adults_quantity == 0:
+            self.adults_quantity = self.day.trip.adults
+        if self.kid_price == Decimal('0.00'):
+            self.kid_price = self.sight.last_price.kid_price
+        if self.kids_quantity == 0:
+            self.kids_quantity = self.day.trip.kids
+
+        super().save(*args, **kwargs)
