@@ -3,6 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
+    platform: "linux/amd64"
     volumes:
       - ./:/usr/src/orisa_api/
       - static_volume:/usr/src/orisa_api/staticfiles
@@ -11,6 +12,7 @@ services:
     env_file: .env
 
   nginx:
+    platform: "linux/amd64"
     build: ./nginx
     ports:
       - "1337:80"

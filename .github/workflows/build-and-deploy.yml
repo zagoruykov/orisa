@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Image version
+        required: true
+
+env:
+  REGISTRY: registry.digitalocean.com/orisa
+  IMAGE_NAME: orisa_api
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Build container images
+        run: docker-compose -f docker-compose.yml build
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Log in to DigitalOcean Container Registry with short-lived credentials
+        run: doctl registry login --expiry-seconds 600
+      - name: Push image to DigitalOcean Container Registry
+        run: | 
+          docker push $(echo $REGISTRY)/orisa_api_web:$(echo $GITHUB_SHA | head -c7)
+          docker push $(echo $REGISTRY)/orisa_api_nginx:$(echo $GITHUB_SHA | head -c7)
