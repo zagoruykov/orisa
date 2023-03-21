@@ -44,7 +44,6 @@ class Trip(models.Model):
         for day in self.days.all():
             for day_sight in day.daysight_set.all():
                 day_sight.save()
-        super().save(*args, **kwargs)
 
     def __reduce_values(self, acc: dict, curr: 'Day'):
         adult_price = curr.sight.last_price.adult_price if curr.sight.last_price else 0

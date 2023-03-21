@@ -26,6 +26,8 @@ jobs:
           docker-compose -f docker-compose.yml build
           docker tag orisa_nginx $(echo $REGISTRY)/orisa_nginx:$(echo $GITHUB_SHA | head -c7)    
           docker tag orisa_web $(echo $REGISTRY)/orisa_web:$(echo $GITHUB_SHA | head -c7)
+      - name: Build tests
+        run: docker exec $(echo $REGISTRY)/orisa_web:$(echo $GITHUB_SHA | head -c7) poetry run pytest .
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:

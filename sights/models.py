@@ -5,9 +5,9 @@ from datetime import timedelta
 # Create your models here.
 class Sight(models.Model):
     created_by = models.ForeignKey('staff.CustomUser', related_name='sights', on_delete=models.CASCADE)
-    title = models.CharField(max_length=50)
+    title = models.CharField(max_length=150)
     description = models.TextField(null=True, blank=True)
-    address = models.CharField(max_length=50, null=True, blank=True)
+    address = models.CharField(max_length=150, null=True, blank=True)
     contact_phone = models.CharField(max_length=50, null=True, blank=True)
     tags = models.ManyToManyField('Tag', related_name='sights', null=True, blank=True)
     shared = models.BooleanField(default=False)

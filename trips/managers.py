@@ -21,7 +21,9 @@ class DayManager(Manager):
     def with_calculations(self):
         shared = Q(daysight__sight__shared=True)
         not_shared = ~shared
-        private_adult_price = Sum(F('daysight__adult_price') * F('daysight__adults_quantity'), filter=not_shared)
+        private_adult_price = Coalesce(
+            Sum(F('daysight__adult_price') * F('daysight__adults_quantity'), filter=not_shared), 0,
+            output_field=DecimalField())
         private_extra_price = Sum(F('daysight__adult_price') * F('daysight__extra'), filter=not_shared)
         private_kids_price = Sum(F('daysight__kids_price') * F('trip__kids'), filter=not_shared)
         private_free_price = Sum(F('daysight__adult_price') * F('trip__free'), filter=not_shared)

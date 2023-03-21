@@ -13,7 +13,7 @@ class PriceFactory(factory.django.DjangoModelFactory):
 
     sight = factory.SubFactory('sights.factories.SightFactory')
     adult_price = factory.Faker('pyint', max_value=1000)
-    kids_price = factory.Faker('pyint', max_value=1000)
+    kid_price = factory.Faker('pyint', max_value=1000)
 
 
 @factory.django.mute_signals(post_save)
@@ -28,11 +28,15 @@ class SightFactory(factory.django.DjangoModelFactory):
     contact_phone = factory.Faker('phone_number')
     shared = factory.Faker('pybool')
     timing = factory.LazyFunction(lambda: datetime.timedelta(hours=1))
+    prices = factory.RelatedFactory(
+        'sights.factories.PriceFactory',
+        factory_related_name='sight'
+    )
 
-    @factory.post_generation
-    def prices(self: Sight, create, extracted, **kwargs):
-        if not create:
-            return
-        if extracted:
-            for price in extracted:
-                self.prices.add(price)
+    # @factory.post_generation
+    # def prices(self: Sight, create, extracted, **kwargs):
+    #     if not create:
+    #         return
+    #     if extracted:
+    #         for price in extracted:
+    #             self.prices.add(price)
