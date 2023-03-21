@@ -51,7 +51,15 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSHKEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
-          envs: REGISTRY,{{ secrets.DIGITALOCEAN_ACCESS_TOKEN }},GITHUB_SHA
+          envs: |
+            REGISTRY,{{ secrets.DIGITALOCEAN_ACCESS_TOKEN }},GITHUB_SHA,
+            {{ secrets.DEBUG }},
+            {{ secrets.SECRET_KEY }},
+            {{ secrets.DB_NAME }},
+            {{ secrets.DB_USER }},
+            {{ secrets.DB_PASSWORD }},
+            {{ secrets.DB_HOST }},
+            {{ secrets.DB_PORT }},
           script: |
             # Login to registry
             docker login -u ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} -p ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} registry.digitalocean.com
