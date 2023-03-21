@@ -69,6 +69,7 @@ jobs:
             cd orisa
             git pull origin hotfix/change_days_schema
             # Set envs
+            rm .env
             echo DEBUG=${{ secrets.DEBUG }} >> .env
             echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
             echo DB_NAME=${{ secrets.DB_NAME }} >> .env
