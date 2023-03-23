@@ -62,6 +62,7 @@ def generate_program(list_sights):
         for i in range(len(sight['day_events'])):
             insert_event(doc, (sight)['day_events'][i]['header'], (sight)['day_events'][i]['body'])
         doc.save('program.docx')
+        # doc.save(f'program_{trip.id}.docx')
 
 def insert_event(doc: Document, header: str, body: str):
     day1_desc = doc.add_paragraph()
