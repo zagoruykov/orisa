@@ -72,6 +72,7 @@ class TripAdmin(nested_admin.NestedModelAdmin):
 
     list_display = ('title', 'client', 'group', 'total_price', 'total_per_person_price', )
 
+
     def __get_day_with_calculations(self):
         return Day.objects.with_calculations().filter(trip=self)
 
@@ -101,12 +102,12 @@ class TripAdmin(nested_admin.NestedModelAdmin):
         return per_person
 
 
-#
-#     @admin.action(description='Generate program')
-#     def generate_program(self, request, queryset):
-#         for trip in queryset:
-#             trip.generate_program()
-
+    @admin.action(description='Generate program')
+    def generate_program(self, request, queryset):
+        for trip in queryset:
+            trip.generate_program()
+    
+    actions = [generate_program]
 
 @admin.register(Day)
 class DayAdmin(nested_admin.NestedModelAdmin):
