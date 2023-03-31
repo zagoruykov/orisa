@@ -4,6 +4,8 @@ from functools import reduce
 import nested_admin
 from django.contrib import admin
 
+from import_export.admin import ImportExportModelAdmin
+
 from .models import Trip, Day, DaySight
 
 
@@ -106,8 +108,9 @@ class TripAdmin(nested_admin.NestedModelAdmin):
     def generate_program(self, request, queryset):
         for trip in queryset:
             trip.generate_program()
-    
+
     actions = [generate_program]
+
 
 @admin.register(Day)
 class DayAdmin(nested_admin.NestedModelAdmin):
