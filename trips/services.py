@@ -3,7 +3,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, Mm, Inches
 from datetime import datetime
 import pytils
-import os
+import os, io
 from functools import reduce
 from django.http import HttpResponse
 from decimal import Decimal
@@ -120,9 +120,18 @@ def create_program_docx(trip: "Trip"):
 
     filename = f'program_{trip.title}_{trip.group()} person_{datetime.today().strftime("%d.%m.%Y")}.docx'
     doc.save(os.path.join(os.getcwd(), filename))
+    path_download = (os.path.join(os.getcwd(), filename))
+    # with open(path_download, 'rb') as fl:
+    #     response = HttpResponse(fl.read(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    #     response["Content-Disposition"] = f"attachment; filename={filename}"
+    #     return response
 
+    docx_stream = io.BytesIO()
+    # doc.save(docx_stream)
+    # docx_bytes = docx_stream.getvalue()
+    docx_bytes = docx_stream.seek(0)
     response = HttpResponse(
-        doc,
+        docx_bytes,
         content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
     response["Content-Disposition"] = f"attachment; filename={filename}"
