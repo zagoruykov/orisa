@@ -19,6 +19,7 @@ def insert_event(doc: Document, sight: str, body: str):
     runner1.bold = False
     runner.add_break()
 
+
 def expense(trip: "Trip"):
     days = trip.days.all()
     total = 0
@@ -51,6 +52,7 @@ def download_program(filename):
                                 content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         response["Content-Disposition"] = f"attachment; filename={filename}"
         return response
+
 
 def create_program_docx(trip: "Trip"):
     doc: Document = Document()
