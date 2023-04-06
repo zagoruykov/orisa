@@ -3,7 +3,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, Mm, Inches
 from datetime import datetime
 import pytils
-import os, io
+import os
 from functools import reduce
 from django.http import HttpResponse
 from decimal import Decimal
@@ -18,7 +18,6 @@ def insert_event(doc: Document, sight: str, body: str):
     runner1 = day1_desc.add_run(body)
     runner1.bold = False
     runner.add_break()
-
 
 def expense(trip: "Trip"):
     days = trip.days.all()
@@ -44,6 +43,14 @@ def expense(trip: "Trip"):
         total += day_price
     return total
 
+
+def download_program(filename):
+    path_download = (os.path.join(os.getcwd(), filename))
+    with open(path_download, 'rb') as fl:
+        response = HttpResponse(fl.read(),
+                                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        response["Content-Disposition"] = f"attachment; filename={filename}"
+        return response
 
 def create_program_docx(trip: "Trip"):
     doc: Document = Document()
@@ -83,25 +90,6 @@ def create_program_docx(trip: "Trip"):
         day_header.alignment = WD_ALIGN_PARAGRAPH.CENTER
         runner = day_header.add_run(f"{i} день")
         runner.add_break()
-
-        vehicles = day.vehiclestrips_set.all()
-        vehicles_price = reduce(
-            lambda acc, curr: acc + curr.price * curr.quantity,
-            vehicles,
-            Decimal("0.00"),
-        )
-        guides = day.guidetrips_set.all()
-        guides_price = reduce(
-            lambda acc, curr: acc + curr.price * curr.quantity, guides, Decimal("0.00")
-        )
-        sights = day.daysight_set.all()
-        sights_price = reduce(
-            lambda acc, curr: acc + curr.adult_price * curr.adults_quantity,
-            sights,
-            Decimal("0.00"),
-        )
-        day_price = vehicles_price + guides_price + sights_price
-
         runner.bold = runner1.bold = True
         runner1 = day_header.add_run(
             pytils.dt.ru_strftime("%d %B", inflected=True, date=day.date)
@@ -109,30 +97,15 @@ def create_program_docx(trip: "Trip"):
         runner.bold = runner1.bold = True
         runner1.underline = True
         runner1.add_break()
-        runner2 = day_header.add_run(
-            f"{day_price} стоимость за день, в т.ч.:\n {vehicles_price} транспорт,\n {guides_price} гиды,\n {sights_price} достопримечательности"
-        )
-        runner2.font.size = Pt(10)
-        runner2.add_break()
+        # runner2 = day_header.add_run(
+        #     f"{day_price} стоимость за день, в т.ч.:\n {vehicles_price} транспорт,\n {guides_price} гиды,\n {sights_price} достопримечательности"
+        # )
+        # runner2.font.size = Pt(10)
+        # runner2.add_break()
 
         for sight in day.daysight_set.order_by("start_at").all():
             insert_event(doc, sight, sight.sight.description)
 
     filename = f'program_{trip.title}_{trip.group()} person_{datetime.today().strftime("%d.%m.%Y")}.docx'
     doc.save(os.path.join(os.getcwd(), filename))
-    path_download = (os.path.join(os.getcwd(), filename))
-    # with open(path_download, 'rb') as fl:
-    #     response = HttpResponse(fl.read(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-    #     response["Content-Disposition"] = f"attachment; filename={filename}"
-    #     return response
-
-    docx_stream = io.BytesIO()
-    # doc.save(docx_stream)
-    # docx_bytes = docx_stream.getvalue()
-    docx_bytes = docx_stream.seek(0)
-    response = HttpResponse(
-        docx_bytes,
-        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
-    response["Content-Disposition"] = f"attachment; filename={filename}"
-    return response
+    return download_program(filename)

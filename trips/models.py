@@ -72,7 +72,7 @@ class Trip(models.Model):
         return round(self.calculate_total() / (self.adults + self.kids + self.free), 2)
 
     def generate_program(self):
-        create_program_docx(self)
+        return create_program_docx(self)
 
     def dump_to_to_docx(self):
         return self.day_set.annotate(day=TruncDate('datetime_start')).annotate(time=TruncTime('datetime_start')).values(
