@@ -24,6 +24,7 @@ jobs:
       - name: Build container images
         run: |
           docker-compose -f docker-compose.yml build
+          docker-compose -f docker-compose.yml pull
           docker tag nginx $(echo $REGISTRY)/orisa_nginx:$(echo $GITHUB_SHA | head -c7)
           docker tag orisa_api_web $(echo $REGISTRY)/orisa_web:$(echo $GITHUB_SHA | head -c7)
       - name: Install dodocctl

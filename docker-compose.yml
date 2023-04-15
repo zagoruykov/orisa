@@ -10,7 +10,7 @@ services:
     expose:
       - "8000"
 
-  nginx:
+  proxy:
     platform: "linux/amd64"
     image: nginx:latest
     ports:
