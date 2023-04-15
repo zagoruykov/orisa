@@ -14,7 +14,7 @@ services:
     platform: "linux/amd64"
     image: nginx:latest
     ports:
-      - "80:80"
+      - "1337:80"
     depends_on:
       - web
     volumes:
