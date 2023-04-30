@@ -10,27 +10,17 @@ services:
     expose:
       - "8000"
 
-  nginx:
+  proxy:
     platform: "linux/amd64"
     image: nginx:latest
     ports:
-      - "80:80"
-      - "443:443"
+      - "1337:80"
     depends_on:
       - web
     volumes:
       - static_volume:/usr/src/orisa_api/staticfiles
       - ./nginx/conf/:/etc/nginx/conf.d/:ro
-      - ./certbot/www:/var/www/certbot/:ro
-      - ./certbot/conf:/etc/nginx/ssl/:ro
     restart: always
-
-  certbot:
-    platform: "linux/amd64"
-    image: certbot/dns-digitalocean
-    volumes:
-      - ./certbot/www/:/var/www/certbot/:rw
-      - ./certbot/conf/:/etc/letsencrypt/:rw
 
 volumes:
   static_volume:
