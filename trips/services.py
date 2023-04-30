@@ -3,6 +3,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, Mm, Inches
 from datetime import datetime
 import pytils
+import zipfile
 import os
 from functools import reduce
 from django.http import HttpResponse
@@ -35,22 +36,30 @@ def expense(trip: "Trip"):
             lambda acc, curr: acc + curr.price * curr.quantity, guides, Decimal("0.00")
         )
         sights = day.daysight_set.all()
-        sights_price = reduce(
+        sights_adult_price = reduce(
             lambda acc, curr: acc + curr.adult_price * curr.adults_quantity,
             sights,
             Decimal("0.00"),
         )
-        day_price = vehicles_price + guides_price + sights_price
+        sights_kid_price = reduce(
+            lambda acc, curr: acc + curr.kid_price * curr.kids_quantity,
+            sights,
+            Decimal("0.00"),
+        )
+        day_price = vehicles_price + guides_price + sights_adult_price + sights_kid_price
         total += day_price
     return total
+
 
 
 def download_program(filename):
     path_download = (os.path.join(os.getcwd(), filename))
     with open(path_download, 'rb') as fl:
         response = HttpResponse(fl.read(),
-                                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                                content_type="application/zip")
         response["Content-Disposition"] = f"attachment; filename={filename}"
+        # fl.close() #если закрываю, остается 1 последний файл
+        # os.remove(filename)
         return response
 
 
@@ -99,15 +108,25 @@ def create_program_docx(trip: "Trip"):
         runner.bold = runner1.bold = True
         runner1.underline = True
         runner1.add_break()
-        # runner2 = day_header.add_run(
-        #     f"{day_price} стоимость за день, в т.ч.:\n {vehicles_price} транспорт,\n {guides_price} гиды,\n {sights_price} достопримечательности"
-        # )
-        # runner2.font.size = Pt(10)
-        # runner2.add_break()
 
         for sight in day.daysight_set.order_by("start_at").all():
             insert_event(doc, sight, sight.sight.description)
 
+    filenames = []
     filename = f'program_{trip.title}_{trip.group()} person_{datetime.today().strftime("%d.%m.%Y")}.docx'
     doc.save(os.path.join(os.getcwd(), filename))
-    return download_program(filename)
+    filenames.append(filename)
+
+    # with zipfile.ZipFile(f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip', mode="a") as archive:
+    #     for filename in filenames:
+    #         archive.write(filename)
+    return archive_program(filenames)
+    # return filenames
+
+
+def archive_program(filenames):
+    with zipfile.ZipFile(f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip', mode="a") as archive:
+        for filename in filenames:
+            archive.write(filename)
+    os.remove(os.path.join(os.getcwd(), filename))
+    return download_program(f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip')
