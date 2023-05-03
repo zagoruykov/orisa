@@ -4,7 +4,7 @@ from docx.shared import Pt, Mm, Inches
 from datetime import datetime
 import pytils
 import zipfile
-import os
+import os, io
 from functools import reduce
 from django.http import HttpResponse
 from decimal import Decimal
@@ -51,15 +51,13 @@ def expense(trip: "Trip"):
     return total
 
 
-
 def download_program(filename):
     path_download = (os.path.join(os.getcwd(), filename))
     with open(path_download, 'rb') as fl:
         response = HttpResponse(fl.read(),
+        # response = HttpResponse(fl.getvalue(),
                                 content_type="application/zip")
         response["Content-Disposition"] = f"attachment; filename={filename}"
-        # fl.close() #если закрываю, остается 1 последний файл
-        # os.remove(filename)
         return response
 
 
@@ -112,21 +110,32 @@ def create_program_docx(trip: "Trip"):
         for sight in day.daysight_set.order_by("start_at").all():
             insert_event(doc, sight, sight.sight.description)
 
-    filenames = []
     filename = f'program_{trip.title}_{trip.group()} person_{datetime.today().strftime("%d.%m.%Y")}.docx'
     doc.save(os.path.join(os.getcwd(), filename))
-    filenames.append(filename)
 
-    # with zipfile.ZipFile(f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip', mode="a") as archive:
-    #     for filename in filenames:
-    #         archive.write(filename)
-    return archive_program(filenames)
-    # return filenames
+    # docx_stream = io.StringIO()
+    # doc.save(docx_stream)
+    # docx_bytes = docx_stream.seek(0)
+    # return docx_bytes
+    return filename
 
 
-def archive_program(filenames):
-    with zipfile.ZipFile(f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip', mode="a") as archive:
-        for filename in filenames:
-            archive.write(filename)
-    os.remove(os.path.join(os.getcwd(), filename))
-    return download_program(f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip')
+def archive_program(queryset):
+    zip_filename = f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip'
+    for trip in queryset:
+        filename = f'program_{trip.title}_{trip.group()} person_{datetime.today().strftime("%d.%m.%Y")}.docx'
+        with zipfile.ZipFile(zip_filename, mode="a") as archive:
+            archive.writestr(filename, trip.generate_program())
+    # os.remove(os.path.join(os.getcwd(), filename))
+    return download_program(zip_filename)
+
+
+
+# def archive_program(queryset):
+#     zip_filename = f'Program_{datetime.today().strftime("%d.%m.%Y")}.zip'
+#     for trip in queryset:
+#         filename = f'program_{trip.title}_{trip.group()} person_{datetime.today().strftime("%d.%m.%Y")}.docx'
+#         with zipfile.ZipFile(zip_filename, mode="a") as archive:
+#             archive.writestr(filename, trip.generate_program())
+#     # os.remove(os.path.join(os.getcwd(), filename))
+#     return download_program(zip_filename)

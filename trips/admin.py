@@ -104,10 +104,13 @@ class TripAdmin(nested_admin.NestedModelAdmin):
 
     @admin.action(description='Generate program')
     def generate_program(self, request, queryset):
-        for trip in queryset:
-            trip.generate_program()
-        # return archive_program
-        return trip.generate_program()
+        return archive_program(queryset)
+    # @admin.action(description='Generate program')
+    # def generate_program(self, request, queryset):
+    #     for trip in queryset:
+    #         trip.generate_program()
+    #     # return archive_program
+    #     return trip.generate_program()
 
     actions = [generate_program]
 
