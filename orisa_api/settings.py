@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +22,14 @@ AUTH_USER_MODEL = "staff.CustomUser"
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8d5i$g%___%a=3x$_3(1uj2l_5943n1!1xeja%j$pr!g#)r+rf'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost:1337']
 
 # Application definition
 
@@ -37,7 +41,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'huey.contrib.djhuey',
     'corsheaders',
     'nested_admin',
     'staff.apps.StaffConfig',
@@ -85,8 +88,12 @@ WSGI_APPLICATION = 'orisa_api.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT')
     }
 }
 
@@ -122,31 +129,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "/static/"
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-HUEY = {
-    'huey_class': 'huey.SqliteHuey',  # Huey implementation to use.
-    'name': 'app.huey',  # Use db name for huey.
-    'fsync': True,
-    'strict_fifo': True,
-    'results': True,  # Store return values of tasks.
-    'store_none': False,  # If a task returns None, do not save to results.
-    'immediate': False,  # If DEBUG=True, run synchronously.
-    'utc': True,  # Use UTC for all times internally.
-    'consumer': {
-        'workers': 4,
-        'worker_type': 'thread',
-        'initial_delay': 0.1,  # Smallest polling interval.
-        'backoff': 1.15,  # Exponential backoff using this rate.
-        'max_delay': 10.0,  # Max possible polling interval.
-        'scheduler_interval': 1,  # Check schedule every second.
-        'periodic': True,  # Enable crontab feature.
-        'check_worker_health': True,  # Enable worker health checks.
-        'health_check_interval': 1,  # Check worker health every second.
-    },
-}

@@ -1,46 +1,49 @@
 import locale
 from functools import reduce
-
+from decimal import Decimal
 from django.db import models
 from django.db.models.functions import TruncDate, TruncTime
 
-from .services import create_program_docx
+from .managers import DayManager
+from .services import create_program_docx, archive_program, download_program
 
 
 class GuideTrips(models.Model):
-    trip = models.ForeignKey('trips.Trip', on_delete=models.CASCADE)
+    day = models.ForeignKey('trips.Day', on_delete=models.CASCADE)
     guide = models.ForeignKey('staff.Guide', on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=15, decimal_places=2)
-    date = models.DateTimeField()
+    quantity = models.PositiveSmallIntegerField()
+
+
+class VehiclesTrips(models.Model):
+    day = models.ForeignKey('trips.Day', on_delete=models.CASCADE)
+    vehicle = models.ForeignKey('staff.Vehicle', on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=15, decimal_places=2)
+    quantity = models.PositiveSmallIntegerField()
 
 
 # Create your models here.
 class Trip(models.Model):
     client = models.ForeignKey('clients.Client', related_name='trips', on_delete=models.CASCADE)
-    guide = models.ManyToManyField('staff.Guide', through='trips.GuideTrips')
-    vehicle = models.ForeignKey('staff.Vehicle', related_name='trips', on_delete=models.CASCADE)
-    title = models.CharField(max_length=50)
+    title = models.CharField(max_length=150)
     description = models.TextField()
-    adults = models.PositiveSmallIntegerField()
-    kids = models.PositiveSmallIntegerField()
-    free = models.PositiveSmallIntegerField()
-    commission = models.DecimalField(max_digits=15, decimal_places=2)
-    profit = models.DecimalField(max_digits=15, decimal_places=2)
-    days = models.ManyToManyField('sights.Sight', through='trips.Day', related_name='days')
+    adults = models.PositiveSmallIntegerField(default=0)
+    kids = models.PositiveSmallIntegerField(default=0)
+    free = models.PositiveSmallIntegerField(default=0)
+    commission = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    profit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     def __str__(self):
         return self.title
 
     def group(self):
-        return self.free + self.kids + self.adults
+        return self.adults + self.kids + self.free
 
-    def trip_start_at(self):
-        day: 'Day' = self.day_set.first()
-        return day.datetime_start if day else None
-
-    def trip_end_at(self):
-        day: 'Day' = self.day_set.last()
-        return day.datetime_end if day else None
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        for day in self.days.all():
+            for day_sight in day.daysight_set.all():
+                day_sight.save()
 
     def __reduce_values(self, acc: dict, curr: 'Day'):
         adult_price = curr.sight.last_price.adult_price if curr.sight.last_price else 0
@@ -69,19 +72,29 @@ class Trip(models.Model):
         return round(self.calculate_total() / (self.adults + self.kids + self.free), 2)
 
     def generate_program(self):
-        create_program_docx(self)
+        return create_program_docx(self)
+
+    def archive_program(self):
+        return archive_program(self)
+    
+    def download_program(self):
+        return download_program(*create_program_docx(self))
 
     def dump_to_to_docx(self):
         return self.day_set.annotate(day=TruncDate('datetime_start')).annotate(time=TruncTime('datetime_start')).values(
             'sight__title', 'day', 'time')
 
 
-
 class Day(models.Model):
-    sight = models.ForeignKey('sights.Sight', on_delete=models.CASCADE)
-    trip = models.ForeignKey('Trip', on_delete=models.CASCADE)
-    datetime_start = models.DateTimeField()
-    datetime_end = models.DateTimeField()
+    trip = models.ForeignKey('Trip', on_delete=models.CASCADE, related_name='days')
+    date = models.DateField()
+    vehicles = models.ManyToManyField('staff.Vehicle', through='trips.VehiclesTrips')
+    guides = models.ManyToManyField('staff.Guide', through='trips.GuideTrips')
+    sights = models.ManyToManyField('sights.Sight', through='trips.DaySight')
+    objects = DayManager()
+
+    def __str__(self):
+        return f'{self.trip.title} - {self.date}'
 
     def __set_locale(self):
         locale.setlocale(locale.LC_TIME, 'ru_RU')
@@ -89,3 +102,41 @@ class Day(models.Model):
     def datetime_to_human(self):
         format_str = '%d %B'
         return self.datetime_start.strftime(format_str), self.datetime_end.strftime(format_str)
+
+
+class DaySight(models.Model):
+    day = models.ForeignKey('trips.Day', on_delete=models.CASCADE)
+    sight = models.ForeignKey('sights.Sight', on_delete=models.CASCADE)
+    adult_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    adults_quantity = models.PositiveSmallIntegerField(default=0)
+    kid_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    kids_quantity = models.PositiveSmallIntegerField(default=0)
+    start_at = models.TimeField(blank=True, null=True)
+    end_at = models.TimeField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Sight'
+
+    def __str__(self):
+        return f'{self.sight.title}'
+
+    def save(self, *args, **kwargs):
+        if self.adult_price == Decimal('0.00'):
+            if self.sight.last_price.adult_price:
+                self.adult_price = self.sight.last_price.adult_price
+            else:
+                self.adult_price = 0
+        if self.adults_quantity == 0:
+            self.adults_quantity = self.day.trip.adults
+        if self.kid_price == Decimal('0.00'):
+            if self.day.trip.kids > 0:
+                if self.sight.last_price.kid_price:
+                    self.kid_price = self.sight.last_price.kid_price
+                else:
+                    self.kid_price = 0
+            else:
+                self.kid_price = 0
+        if self.kids_quantity == 0:
+            self.kids_quantity = self.day.trip.kids
+
+        super().save(*args, **kwargs)

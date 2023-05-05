@@ -8,7 +8,6 @@ from .managers import CustomUserManager
 # Create your models here.
 class Vehicle(models.Model):
     title = models.CharField(max_length=50)
-    price = models.DecimalField(max_digits=15, decimal_places=2)
     capacity = models.PositiveSmallIntegerField()
     type = models.CharField(max_length=50)
 

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    platform: "linux/amd64"
+    volumes:
+      - ./:/usr/src/orisa_api/
+      - static_volume:/usr/src/orisa_api/staticfiles
+    expose:
+      - "8000"
+
+  proxy:
+    platform: "linux/amd64"
+    image: nginx:latest
+    ports:
+      - "1337:80"
+    depends_on:
+      - web
+    volumes:
+      - static_volume:/usr/src/orisa_api/staticfiles
+      - ./nginx/conf/:/etc/nginx/conf.d/:ro
+    restart: always
+
+volumes:
+  static_volume:

@@ -1,3 +1,9 @@
-from django.test import TestCase
+import pytest
 
-# Create your tests here.
+from .factories import CustomUserFactory
+
+
+@pytest.mark.django_db
+def test_create_user():
+    user = CustomUserFactory.create()
+    assert user
