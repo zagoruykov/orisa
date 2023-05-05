@@ -76,6 +76,9 @@ class Trip(models.Model):
 
     def archive_program(self):
         return archive_program(self)
+    
+    def download_program(self):
+        return download_program(*create_program_docx(self))
 
     def dump_to_to_docx(self):
         return self.day_set.annotate(day=TruncDate('datetime_start')).annotate(time=TruncTime('datetime_start')).values(
