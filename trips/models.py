@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models.functions import TruncDate, TruncTime
 
 from .managers import DayManager
-from .services import create_program_docx
+from .services import create_program_docx, archive_program, download_program
 
 
 class GuideTrips(models.Model):
@@ -72,7 +72,13 @@ class Trip(models.Model):
         return round(self.calculate_total() / (self.adults + self.kids + self.free), 2)
 
     def generate_program(self):
-        create_program_docx(self)
+        return create_program_docx(self)
+
+    def archive_program(self):
+        return archive_program(self)
+    
+    def download_program(self):
+        return download_program(*create_program_docx(self))
 
     def dump_to_to_docx(self):
         return self.day_set.annotate(day=TruncDate('datetime_start')).annotate(time=TruncTime('datetime_start')).values(
@@ -116,11 +122,20 @@ class DaySight(models.Model):
 
     def save(self, *args, **kwargs):
         if self.adult_price == Decimal('0.00'):
-            self.adult_price = self.sight.last_price.adult_price
+            if self.sight.last_price.adult_price:
+                self.adult_price = self.sight.last_price.adult_price
+            else:
+                self.adult_price = 0
         if self.adults_quantity == 0:
             self.adults_quantity = self.day.trip.adults
         if self.kid_price == Decimal('0.00'):
-            self.kid_price = self.sight.last_price.kid_price
+            if self.day.trip.kids > 0:
+                if self.sight.last_price.kid_price:
+                    self.kid_price = self.sight.last_price.kid_price
+                else:
+                    self.kid_price = 0
+            else:
+                self.kid_price = 0
         if self.kids_quantity == 0:
             self.kids_quantity = self.day.trip.kids
 
